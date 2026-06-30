@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cinema_db_dev
+    environment:
+      POSTGRES_USER: cinema_admin
+      POSTGRES_PASSWORD: cinema_password_2026
+      POSTGRES_DB: online_cinema_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cinema_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cinema_redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - cinema_network
+
+  minio:
+    image: minio/minio
+    container_name: cinema_minio_dev
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password_2026
+    ports:
+      - "9000:9000"       # API Port
+      - "9001:9001"       # Web Console UI Port
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - cinema_network
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  cinema_network:
+    driver: bridge
