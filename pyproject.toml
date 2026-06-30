@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "online-cinema-project"
+version = "0.1.0"
+description = "Asynchronous Online Cinema Backend Application"
+authors = ["Kyryl Sauta <kyrylsauta@gmail.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.138.2"
+uvicorn = {extras = ["standard"], version = "^0.49.0"}
+sqlalchemy = "^2.0.51"
+asyncpg = "^0.31.0"
+alembic = "^1.18.5"
+pydantic-settings = "^2.14.2"
+celery = "^5.6.3"
+redis = "^8.0.1"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+pyjwt = "^2.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "mypy (>=2.1.0,<3.0.0)"
+]
