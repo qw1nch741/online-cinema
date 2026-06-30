@@ -1,6 +1,10 @@
 import enum
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional
+from sqlalchemy.orm import validates
+from src.database.validators.accounts import validate_email
+from src.database.validators.accounts import validate_email, validate_password
+from src.services.auth.security import hash_password
 
 from sqlalchemy import (
     ForeignKey,
@@ -90,6 +94,19 @@ class UserModel(Base):
     def create(cls, email: str, hashed_password: str, group_id: int) -> "UserModel":
         """Factory method to instantiate a user directly with a pre-hashed string."""
         return cls(email=email.lower(), _hashed_password=hashed_password, group_id=group_id)
+
+    @validates("email")
+    def validate_email(self, value):
+        return validate_email(value)
+
+    @property
+    def password(self) -> str:
+        raise AttributeError("Password is not a readable attribute")
+
+    @password.setter
+    def password(self, raw_password: str) -> None:
+        validated = validate_password(raw_password)
+        self._hashed_password = hash_password(validated)
 
 
 class UserProfileModel(Base):
