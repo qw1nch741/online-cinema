@@ -10,8 +10,9 @@ class MovieCreate(BaseModel):
     duration_minutes: int = Field(gt=0)
     release_year: int = Field(ge=1888, le=2026)
 
+
 class MovieResponse(MovieCreate):
     id: int
 
     class Config:
-        from_attributes=True
+        from_attributes = True
