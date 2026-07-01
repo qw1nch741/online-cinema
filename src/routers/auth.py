@@ -12,7 +12,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=schemas.auth.UserResponse)
-async def register(data: schemas.auth.UserRegisterRequest, db: AsyncSession = Depends(get_postgresql_db)):
+async def register(
+    data: schemas.auth.UserRegisterRequest,
+    db: AsyncSession = Depends(get_postgresql_db),
+):
     result = await db.execute(select(UserModel).where(UserModel.email == data.email))
     user_email = result.scalar_one_or_none()
     if user_email:
@@ -26,9 +29,14 @@ async def register(data: schemas.auth.UserRegisterRequest, db: AsyncSession = De
 
     return new_user
 
+
 @router.post("/login", response_model=schemas.auth.TokenResponse)
-async def login(data: schemas.auth.UserLoginRequest, db: AsyncSession = Depends(get_postgresql_db)):
-    user_result = await db.execute(select(UserModel).where(UserModel.email == data.email))
+async def login(
+    data: schemas.auth.UserLoginRequest, db: AsyncSession = Depends(get_postgresql_db)
+):
+    user_result = await db.execute(
+        select(UserModel).where(UserModel.email == data.email)
+    )
     user = user_result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user._hashed_password):
@@ -39,8 +47,5 @@ async def login(data: schemas.auth.UserLoginRequest, db: AsyncSession = Depends(
     return {
         "access_token": token,
         "refresh_token": "refresh_token",
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
-
-
-

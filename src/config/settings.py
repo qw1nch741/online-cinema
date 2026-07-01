@@ -18,9 +18,7 @@ class BaseAppSettings(BaseSettings):
 
     # 2. Tell Pydantic to read from a local .env file automatically
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
 
