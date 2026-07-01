@@ -169,3 +169,14 @@ class RefreshTokenModel(TokenBaseModel):
 
     def __repr__(self):
         return f"<RefreshTokenModel(id={self.id}, expires_at={self.expires_at})>"
+
+
+class MovieModel(Base):
+    __tablename__ = "movies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    description: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
+    duration_minutes: Mapped[int] = mapped_column(nullable=False)
+    release_year: Mapped[int] = mapped_column(nullable=False)
+
