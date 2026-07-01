@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-import schemas
+from src.schemas.movies import MovieCreate, MovieResponse
 
 from src.database.models import MovieModel
 from src.database.session import get_postgresql_db
@@ -12,9 +12,9 @@ from src.database.models import UserModel
 router = APIRouter(prefix="/movies", tags=["/movies"])
 
 
-@router.post("/", response_model=schemas.movies.MovieResponse)
+@router.post("/", response_model=MovieResponse)
 async def create_movie(
-    movie: schemas.movies.MovieCreate,
+    movie: MovieCreate,
     db: AsyncSession = Depends(get_postgresql_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -38,14 +38,14 @@ async def create_movie(
     return new_movie
 
 
-@router.get("/", response_model=list[schemas.movies.MovieResponse])
+@router.get("/", response_model=list[MovieResponse])
 async def get_movies(db: AsyncSession = Depends(get_postgresql_db)):
     movies_result = await db.execute(select(MovieModel))
     movies = movies_result.scalars().all()
     return movies
 
 
-@router.get("/{movie_id}", response_model=schemas.movies.MovieResponse)
+@router.get("/{movie_id}", response_model=MovieResponse)
 async def get_movie(movie_id: int, db: AsyncSession = Depends(get_postgresql_db)):
     result = await db.execute(select(MovieModel).where(MovieModel.id == movie_id))
     movie = result.scalar_one_or_none()

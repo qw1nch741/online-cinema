@@ -1,4 +1,9 @@
-import schemas
+from src.schemas.movies import (
+    UserResponse,
+    UserRegisterRequest,
+    TokenResponse,
+    UserLoginRequest,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import AsyncSession
 from sqlalchemy import select
@@ -11,9 +16,9 @@ from src.services.auth.security import verify_password, create_access_token
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=schemas.auth.UserResponse)
+@router.post("/register", response_model=UserResponse)
 async def register(
-    data: schemas.auth.UserRegisterRequest,
+    data: UserRegisterRequest,
     db: AsyncSession = Depends(get_postgresql_db),
 ):
     result = await db.execute(select(UserModel).where(UserModel.email == data.email))
@@ -30,10 +35,8 @@ async def register(
     return new_user
 
 
-@router.post("/login", response_model=schemas.auth.TokenResponse)
-async def login(
-    data: schemas.auth.UserLoginRequest, db: AsyncSession = Depends(get_postgresql_db)
-):
+@router.post("/login", response_model=TokenResponse)
+async def login(data: UserLoginRequest, db: AsyncSession = Depends(get_postgresql_db)):
     user_result = await db.execute(
         select(UserModel).where(UserModel.email == data.email)
     )
