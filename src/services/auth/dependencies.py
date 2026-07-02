@@ -34,9 +34,10 @@ class RoleChecker:
     def __init__(self, allowed_groups: list[UserGroupEnum]):
         self.allowed_groups = allowed_groups
 
-    async def __call__(self, current_user: UserModel = Depends(get_current_user)) -> UserModel:
+    async def __call__(
+        self, current_user: UserModel = Depends(get_current_user)
+    ) -> UserModel:
         user_group = current_user.group.name
         if not user_group in self.allowed_groups:
             raise HTTPException(status_code=403, detail="Permission denied")
         return current_user
-
