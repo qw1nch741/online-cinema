@@ -110,7 +110,5 @@ async def delete_cart(
     if not user_cart:
         raise HTTPException(status_code=404, detail="The cart is absent")
 
-    await db.execute(
-        delete(CartItemModel).where(CartItemModel.cart_id == user_cart.id)
-    )
+    await db.execute(delete(CartItemModel).where(CartItemModel.cart_id == user_cart.id))
     await db.commit()
