@@ -1,7 +1,6 @@
 import datetime
 from sqlalchemy import delete
 from fastapi import APIRouter, Depends, HTTPException, status
-from mypy.checker import detach_callable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.schemas.cart import CartItemAdd, CartItemResponse, CartResponse
