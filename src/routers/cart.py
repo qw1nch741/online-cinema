@@ -1,6 +1,7 @@
 import datetime
-
+from sqlalchemy import delete
 from fastapi import APIRouter, Depends, HTTPException, status
+from mypy.checker import detach_callable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.schemas.cart import CartItemAdd, CartItemResponse, CartResponse
@@ -70,3 +71,47 @@ async def add_movie_to_the_cart(
     await db.commit()
     await db.refresh(new_item)
     return new_item
+
+
+@router.delete("/items/{item_id}", status_code=204)
+async def delete_item(
+    item_id: int,
+    db: AsyncSession = Depends(get_postgresql_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(CartModel).where(CartModel.user_id == current_user.id)
+    )
+    user_cart = result.scalar_one_or_none()
+    if not user_cart:
+        raise HTTPException(status_code=404, detail="The cart is absent")
+
+    items = await db.execute(
+        select(CartItemModel).where(
+            CartItemModel.id == item_id, CartItemModel.cart_id == user_cart.id
+        )
+    )
+    item = items.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found in your cart")
+
+    db.delete(item)
+    await db.commit()
+
+
+@router.delete("/", status_code=204)
+async def delete_cart(
+    db: AsyncSession = Depends(get_postgresql_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(CartModel).where(CartModel.user_id == current_user.id)
+    )
+    user_cart = result.scalar_one_or_none()
+    if not user_cart:
+        raise HTTPException(status_code=404, detail="The cart is absent")
+
+    await db.execute(
+        delete(CartItemModel).where(CartModel.cart_id == current_user.cart_id)
+    )
+    await db.commit()
