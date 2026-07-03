@@ -16,6 +16,9 @@ class BaseAppSettings(BaseSettings):
     MINIO_HOST: str = "cinema_minio_dev"  # Match your docker service names!
     MINIO_PORT: int = 9000
 
+    # Swagger / OpenAPI: set to false in production to restrict public docs access
+    OPENAPI_DOCS_ENABLED: bool = True
+
     # 2. Tell Pydantic to read from a local .env file automatically
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

@@ -27,7 +27,26 @@ build-backend = "poetry.core.masonry.api"
 dev = [
     "pytest (>=9.1.1,<10.0.0)",
     "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "pytest-cov (>=6.0.0,<7.0.0)",
     "httpx (>=0.28.1,<0.29.0)",
     "flake8 (>=7.3.0,<8.0.0)",
     "mypy (>=2.1.0,<3.0.0)"
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["src/database/migrations", "src/worker"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/database/migrations/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
