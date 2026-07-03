@@ -1,20 +1,31 @@
-import datetime
-from sqlalchemy import delete
-from fastapi import APIRouter, Depends, HTTPException, status
+"""Shopping cart endpoints: view, add, remove items, and clear cart."""
+
+from sqlalchemy import delete, select
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from src.schemas.cart import CartItemAdd, CartItemResponse, CartResponse
 
-from src.database.models import MovieModel, CartModel, CartItemModel
+from src.database.models import CartItemModel, CartModel, UserModel
 from src.database.session import get_postgresql_db
-
+from src.schemas.cart import CartItemAdd, CartItemResponse, CartResponse
 from src.services.auth.dependencies import get_current_user
-from src.database.models import UserModel
 
-router = APIRouter(prefix="/cart", tags=["/cart"])
+router = APIRouter(prefix="/cart", tags=["Shopping Cart"])
 
 
-@router.get("/", response_model=CartResponse)
+@router.get(
+    "/",
+    response_model=CartResponse,
+    summary="Get current user's cart",
+    description=(
+        "Retrieve the authenticated user's shopping cart.\n\n"
+        "**Action:** Returns the cart and its items. If no cart exists yet, one is created automatically.\n\n"
+        "**Authorization:** Bearer access token required."
+    ),
+    responses={
+        200: {"description": "Cart with items"},
+        401: {"description": "Missing or invalid Bearer access token"},
+    },
+)
 async def get_cart(
     db: AsyncSession = Depends(get_postgresql_db),
     current_user: UserModel = Depends(get_current_user),
@@ -34,7 +45,25 @@ async def get_cart(
     return user_cart
 
 
-@router.post("/items", response_model=CartItemResponse)
+@router.post(
+    "/items",
+    response_model=CartItemResponse,
+    summary="Add movie to cart",
+    description=(
+        "Add a movie to the authenticated user's cart.\n\n"
+        "**Action:** Creates a cart item linking the user cart to a movie. "
+        "The same movie cannot be added twice to one cart.\n\n"
+        "**Authorization:** Bearer access token required.\n\n"
+        "**Parameters (body):**\n"
+        "- `movie_id` — ID of the movie to add"
+    ),
+    responses={
+        200: {"description": "Item added to cart"},
+        401: {"description": "Missing or invalid Bearer access token"},
+        404: {"description": "Movie already in cart or already purchased"},
+        422: {"description": "Validation error"},
+    },
+)
 async def add_movie_to_the_cart(
     item: CartItemAdd,
     db: AsyncSession = Depends(get_postgresql_db),
@@ -72,9 +101,25 @@ async def add_movie_to_the_cart(
     return new_item
 
 
-@router.delete("/items/{item_id}", status_code=204)
+@router.delete(
+    "/items/{item_id}",
+    status_code=204,
+    summary="Remove item from cart",
+    description=(
+        "Remove a single item from the authenticated user's cart.\n\n"
+        "**Action:** Deletes the cart item by its ID. Only items belonging to the current user's cart can be removed.\n\n"
+        "**Authorization:** Bearer access token required.\n\n"
+        "**Parameters:**\n"
+        "- `item_id` — numeric ID of the cart item (path parameter)"
+    ),
+    responses={
+        204: {"description": "Item removed"},
+        401: {"description": "Missing or invalid Bearer access token"},
+        404: {"description": "Cart or item not found"},
+    },
+)
 async def delete_item(
-    item_id: int,
+    item_id: int = Path(..., description="ID of the cart item to remove", examples=[1]),
     db: AsyncSession = Depends(get_postgresql_db),
     current_user: UserModel = Depends(get_current_user),
 ):
@@ -98,7 +143,21 @@ async def delete_item(
     await db.commit()
 
 
-@router.delete("/", status_code=204)
+@router.delete(
+    "/",
+    status_code=204,
+    summary="Clear entire cart",
+    description=(
+        "Remove all items from the authenticated user's cart.\n\n"
+        "**Action:** Deletes every cart item but keeps the empty cart container.\n\n"
+        "**Authorization:** Bearer access token required."
+    ),
+    responses={
+        204: {"description": "Cart cleared"},
+        401: {"description": "Missing or invalid Bearer access token"},
+        404: {"description": "Cart not found"},
+    },
+)
 async def delete_cart(
     db: AsyncSession = Depends(get_postgresql_db),
     current_user: UserModel = Depends(get_current_user),
