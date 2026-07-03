@@ -17,7 +17,7 @@ This submission fulfills the following core requirements from the project specif
 | 7 | **Poetry for Dependency Management** | ✅ Implemented | Reproducible builds via `pyproject.toml` |
 | 8 | **CI/CD with GitHub Actions** | ✅ Implemented | Automated linters, static analysis, and testing |
 | 9 | **Swagger Documentation** | ✅ Implemented | Interactive OpenAPI 3.x schema |
-| 10| **Writing Tests** | 🚧 In Progress | Pytest coverage for Auth domain |
+| 10| **Writing Tests** | ✅ Implemented | Pytest coverage for Auth domain |
 
 > **Note on Phase 2 (Business Domain):** Basic boilerplate models and routers for Movies, Cart, and Orders have been scaffolded to provide context for the auth flows, but the complete relational logic (Many-to-Many associations, Payments) is reserved for Phase 2.
 

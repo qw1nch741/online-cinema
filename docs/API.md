@@ -120,6 +120,47 @@ An activation token valid for 24 hours is created server-side.
 
 ---
 
+### `POST /auth/change-password`
+
+| | |
+|---|---|
+| **Auth** | Bearer access token required |
+| **Purpose** | Change account password |
+
+**Request body:** `old_password`, `new_password`
+
+**Success (200):** Password updated successfully  
+**Errors:** `401` invalid old password or unauthorized session
+
+---
+
+### `POST /auth/forgot-password`
+
+| | |
+|---|---|
+| **Auth** | Not required |
+| **Purpose** | Request a password reset token |
+
+**Request body:** `email`
+
+**Success (200):** Ambiguous success confirmation (sent reset link if registered)
+
+---
+
+### `POST /auth/reset-password`
+
+| | |
+|---|---|
+| **Auth** | Not required |
+| **Purpose** | Complete password reset using token |
+
+**Request body:** `token`, `new_password`
+
+**Success (200):** Credentials updated; user can now log in  
+**Errors:** `400` token has expired · `404` token string not found
+
+---
+
 ## Movies (`/movies`)
 
 ### `GET /movies/`
