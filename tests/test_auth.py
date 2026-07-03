@@ -26,7 +26,7 @@ async def test_activate_invalid_token(client, db_session):
     await client.post("/auth/register", json=payload)
     await db_session.commit()
 
-    response = await client.get(f"/auth/activate?token=fake-token-123")
+    response = await client.get("/auth/activate?token=fake-token-123")
 
     assert response.status_code == 404
 
@@ -132,7 +132,7 @@ async def test_activate_user_success(client, db_session):
     db_session.expunge_all()
 
     assert response.status_code == 200
-    assert db_user.is_active == True
+    assert db_user.is_active is True
 
 
 @pytest.mark.asyncio
@@ -222,9 +222,9 @@ async def test_logout_unauthorized(client, db_session):
 
     await db_session.commit()
 
-    headers = {"Authorization": f"Bearer fake_token"}
+    headers = {"Authorization": "Bearer fake_token"}
     response = await client.post(
-        f"/auth/logout?refresh_token=fake_token", headers=headers
+        "/auth/logout?refresh_token=fake_token", headers=headers
     )
 
     assert response.status_code == 401
@@ -251,7 +251,7 @@ async def test_change_password_success(client, db_session):
 
     headers = {"Authorization": f"Bearer {my_access}"}
     response = await client.post(
-        f"/auth/change-password?old_password=", json=new_pass_payload, headers=headers
+        "/auth/change-password?old_password=", json=new_pass_payload, headers=headers
     )
 
     assert response.status_code == 200
@@ -283,7 +283,7 @@ async def test_change_password_wrong_old_password(client, db_session):
 
     headers = {"Authorization": f"Bearer {my_access}"}
     response = await client.post(
-        f"/auth/change-password", json=new_pass_payload, headers=headers
+        "/auth/change-password", json=new_pass_payload, headers=headers
     )
 
     assert response.status_code == 401
