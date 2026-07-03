@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 
 from src.database.models import UserModel, UserGroupEnum
 from src.database.session import get_postgresql_db
-from src.services.auth.security import SECRET_KEY, ALGORITHM
+from src.config.settings import get_settings
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="auth/login",
@@ -27,7 +27,8 @@ async def get_current_user(
     Errors: 401 if token is missing, invalid, expired, or user not found.
     """
     try:
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        settings = get_settings()
+        decoded = jwt.decode(token, settings.SECRET_KEY_ACCESS, algorithms=[settings.ALGORITHM])
         result = await db.execute(
             select(UserModel)
             .options(joinedload(UserModel.group))

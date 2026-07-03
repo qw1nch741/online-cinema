@@ -40,7 +40,7 @@ class Settings(BaseAppSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # 3. Dynamic SQLAlchemy Driver String Constructor
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def ASYNC_DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"

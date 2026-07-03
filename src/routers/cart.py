@@ -139,7 +139,7 @@ async def delete_item(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found in your cart")
 
-    db.delete(item)
+    await db.delete(item)
     await db.commit()
 
 

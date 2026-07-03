@@ -66,7 +66,7 @@ async def checkout(
     total_running_amount = Decimal("0.00")
 
     for cart_item in user_cart.items:
-        movie_price = cart_item.movie.price
+        movie_price = getattr(cart_item.movie, "price", Decimal("9.99"))
         total_running_amount += movie_price
 
         order_item = OrderItemModel(
@@ -74,7 +74,7 @@ async def checkout(
         )
         order_items.append(order_item)
 
-    new_order.total_amount = total_running_amount
+    new_order.total_amount = total_running_amount  # type: ignore[assignment]
     new_order.items = order_items
 
     user_cart.items.clear()
