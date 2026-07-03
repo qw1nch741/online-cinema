@@ -18,7 +18,7 @@ redis = "^8.0.1"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 pyjwt = "^2.13.0"
 bcrypt = "^5.0.0"
-pydantic = "^2.13.4"
+pydantic = {extras = ["email"], version = "^2.13.4"}
 
 [build-system]
 requires = ["poetry-core"]
@@ -30,7 +30,8 @@ dev = [
     "pytest-cov (>=6.0.0,<7.0.0)",
     "httpx (>=0.28.1,<0.29.0)",
     "flake8 (>=7.3.0,<8.0.0)",
-    "mypy (>=2.1.0,<3.0.0)"
+    "mypy (>=2.1.0,<3.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)"
 ]
 
 [tool.pytest.ini_options]
