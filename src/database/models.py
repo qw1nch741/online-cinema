@@ -7,7 +7,6 @@ from typing import List, Optional
 from decimal import Decimal
 from sqlalchemy import Numeric
 from sqlalchemy.orm import validates
-from src.database.validators.accounts import validate_email
 from src.database.validators.accounts import validate_email, validate_password
 from src.services.auth.security import hash_password
 
@@ -117,7 +116,7 @@ class UserModel(Base):
         )
 
     @validates("email")
-    def validate_email(self, value):
+    def validate_email(self, key, value):
         return validate_email(value)
 
     @property

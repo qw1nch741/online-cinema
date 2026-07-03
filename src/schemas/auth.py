@@ -50,7 +50,7 @@ class UserResponse(BaseModel):
         ...,
         description="False until the account is activated via email token",
     )
-    created_at = datetime
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -116,6 +116,7 @@ class MessageResponse(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
     """Payload for logged-in users updating their credentials."""
+
     old_password: str
     new_password: str
 
@@ -127,11 +128,13 @@ class PasswordChangeRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     """Payload for anonymous users requesting a reset token link."""
+
     email: EmailStr
 
 
 class PasswordResetConfirm(BaseModel):
     """Payload for finishing the unauthenticated reset loop."""
+
     token: str
     new_password: str
 
