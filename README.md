@@ -1,145 +1,116 @@
+# Online Cinema API - Phase 1 (Core Infrastructure & Auth)
 
-# Online Cinema API
+Asynchronous backend for an Online Cinema platform built with FastAPI, SQLAlchemy 2.0, PostgreSQL, Celery, Redis, and Poetry.
 
-A production-ready, asynchronous backend architecture for an Online Cinema platform. Built using FastAPI, SQLAlchemy 2.0, PostgreSQL, Celery, and Redis, this system implements high-performance media cataloging, secure user authentication, transactional shopping carts, and automated background data lifecycle management.
+**Currently under review for Phase 1.** This phase focuses entirely on establishing a production-grade infrastructure, a bulletproof CI/CD pipeline, and a highly secure Authentication & Authorization domain. 
 
 ---
-```markdown
-## Implemented Core Features
 
-The system architecture implements 7 core features from the project specification, organized across four operational domains:
+## Phase 1 Deliverables
 
-### 1. Identity and Access Management
-* Secure Registration and Token Lifecycle: Unique email constraints, secure password hashing, and asynchronous token dispatch.
-* Advanced JWT Session Rotation and Logout: Dual access and refresh token pairs with active token revocation upon logout.
-* Role-Based Access Control (RBAC): Generic, parameterized role-checking dependencies enforcing access control across User, Moderator, and Admin groups.
+This submission fulfills the following core requirements from the project specification:
 
-### 2. Content Management
-* Movie Catalog Engine: Asynchronous relational data layers managing movies, genres, actors, directors, and age certifications.
+| # | Task | Status | Focus Area |
+|---|------|--------|------------|
+| 1 | **Authorization and Authentication** | ✅ Implemented | JWTs, Password Reset Flows, Email Activation |
+| 6 | **Docker and Docker Compose** | ✅ Implemented | Multi-container dev environment |
+| 7 | **Poetry for Dependency Management** | ✅ Implemented | Reproducible builds via `pyproject.toml` |
+| 8 | **CI/CD with GitHub Actions** | ✅ Implemented | Automated linters, static analysis, and testing |
+| 9 | **Swagger Documentation** | ✅ Implemented | Interactive OpenAPI 3.x schema |
+| 10| **Writing Tests** | 🚧 In Progress | Pytest coverage for Auth domain |
 
-### 3. Transactional Commerce
-* Isolated Shopping Cart Manager: User-insulated item holding with complete enforcement against duplicate entries.
-* Atomic Order Checkout: Relational database transaction processing that snapshots live cart entries into permanent order items, locking in the historical price (`price_at_order`) to protect against retroactive price changes.
+> **Note on Phase 2 (Business Domain):** Basic boilerplate models and routers for Movies, Cart, and Orders have been scaffolded to provide context for the auth flows, but the complete relational logic (Many-to-Many associations, Payments) is reserved for Phase 2.
 
-### 4. Automated Infrastructure
-* Background Daemon Automation: Distributed asynchronous task management using Celery and Redis to automatically purge expired tokens from the database.
+---
+
+## API Documentation (Swagger / OpenAPI)
+
+The project uses **OpenAPI 3.x** via FastAPI. All custom endpoints are rigorously documented.
+
+### Accessing documentation
+
+| URL | Description |
+|-----|-------------|
+| `http://127.0.0.1:8000/docs` | Swagger UI (interactive) |
+| `http://127.0.0.1:8000/redoc` | ReDoc (read-only) |
+| `http://127.0.0.1:8000/openapi.json` | Raw OpenAPI 3.x schema |
+
+### Restricting documentation access
+
+Set in `.env`:
+```env
+OPENAPI_DOCS_ENABLED=false
+```
+When disabled, `/docs`, `/redoc`, and `/openapi.json` return a generic message instead of the schema. Use this in production to restrict public access to API documentation.
+
+### Using Bearer auth in Swagger UI
+1. Call `POST /auth/login` with email and password.
+2. Copy the `access_token` from the response.
+3. Click **Authorize** in Swagger UI.
+4. Enter: `Bearer <access_token>`
+
+---
+
+## Phase 1 Endpoint Reference (Auth Domain)
+
+The Auth domain is fully realized with secure hashing, token rotation, and password management.
+
+| Method | Path | Auth | Action |
+|--------|------|------|--------|
+| POST | `/auth/register` | No | Register with email; creates inactive user and 24h activation token |
+| GET | `/auth/activate?token=` | No | Activate account using email token |
+| POST | `/auth/activate/resend` | No | Resend activation token for inactive account |
+| POST | `/auth/login` | No | Login; returns access + refresh JWT pair |
+| POST | `/auth/refresh` | No | Exchange refresh token for new access + refresh tokens |
+| POST | `/auth/logout?refresh_token=` | Yes | Revoke refresh token |
+| POST | `/auth/change-password` | Yes | Change password (requires old password) |
+| POST | `/auth/forgot-password` | No | Generates and issues a secure password reset token |
+| POST | `/auth/reset-password` | No | Validates reset token and sets new password |
 
 ---
 
 ## Tech Stack
 
-* Framework: FastAPI (Asynchronous ASGI)
-* Data Validation: Pydantic v2
-* ORM: SQLAlchemy 2.0 (Async Engine)
-* Database: PostgreSQL
-* Task Queue & Scheduler: Celery and Celery Beat
-* Message Broker: Redis
-* Dependency Management: Poetry
-* Containerization: Docker and Docker Compose
+- **Framework:** FastAPI (async ASGI)
+- **ORM:** SQLAlchemy 2.0 + asyncpg
+- **Database:** PostgreSQL
+- **Task queue:** Celery + Celery Beat
+- **Broker:** Redis
+- **Dependencies:** Poetry
+- **Containers:** Docker + Docker Compose
 
 ---
 
-## Project Directory Layout
-
-
-src/
-├── config/          # Application settings and environment parsing
-├── database/        # Connection engines, session factories, and SQLAlchemy models
-├── routers/         # HTTP endpoint route definitions
-├── schemas/         # Pydantic data serialization and validation contracts
-├── services/        # Core business logic processing layers
-└── worker/          # Celery worker initialization and task runners
-
-```
-
----
-
-## Installation and Local Setup
+## Local Setup
 
 ### Prerequisites
+- Python 3.10+
+- Poetry
+- Docker & Docker Compose
 
-* Python 3.11 or higher
-* Poetry
-* Redis Server
-* PostgreSQL Server
-
-### 1. Clone the Repository
-
+### Run via Docker (Recommended)
 ```bash
-git clone <repository-url>
-cd online-cinema-project
-
+cp .env.sample .env   # edit values as needed
+docker compose -f docker-compose-dev.yml up --build
 ```
-
-### 2. Install Dependencies
-
-Install the project dependencies within an isolated virtual environment using Poetry:
-
-```bash
-poetry install
-
-```
-
-### 3. Environment Configuration
-
-Create a `.env` file in the root directory and populate your configuration keys:
-
-```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/online_cinema
-REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=your_super_secret_jwt_signing_key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-```
-
-### 4. Database Migrations
-
-Run Alembic migrations to apply the database schema to your local PostgreSQL instance:
-
-```bash
-poetry run alembic upgrade head
-
-```
+API: `http://127.0.0.1:8000`  
+Swagger: `http://127.0.0.1:8000/docs`
 
 ---
 
-## Running the System
+## Test Coverage (Task 10)
 
-The system requires three separate execution processes to run concurrently. Execute each command in a separate terminal window or tab within your virtual environment.
-
-### 1. Start the FastAPI Web Server
+Tests use **pytest** with **pytest-cov** for coverage reporting. 
 
 ```bash
-poetry run uvicorn src.main:app --reload
-
+poetry run pytest --cov=src --cov-report=html
 ```
-
-### 2. Start the Celery Execution Worker
-
-```bash
-poetry run celery -A src.worker.celery_app:celery_app worker --loglevel=info
-
-```
-
-### 3. Start the Celery Beat Scheduler
-
-```bash
-poetry run celery -A src.worker.celery_app:celery_app beat --loglevel=info
-
-```
+*Open `htmlcov/index.html` in your browser for a line-by-line coverage breakdown.*
 
 ---
-
-## API Documentation and Interactive Testing
-
-Once the FastAPI application server is running, the fully interactive Swagger and OpenAPI documentation is accessible via your web browser:
-
-* Interactive Swagger UI: http://127.0.0.1:8000/docs
-* Alternative ReDoc UI: http://127.0.0.1:8000/redoc
-
-All endpoints, including the checkout pipelines and role-based permissions, can be executed and profiled directly through the Swagger interface using an active authorization bearer token.
-
-```
-
-```
+## CI/CD Pipeline (Task 8)
+GitHub Actions runs on every push/PR to `main`:
+1. `flake8` — code style checks
+2. `mypy` — static type checking
+3. `alembic upgrade head` — migration validation
+4. `pytest --cov` — automated test execution
