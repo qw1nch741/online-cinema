@@ -1,0 +1,86 @@
+# Continuous Integration pipeline for Online Cinema API.
+# Runs automatically on every push and pull request to main/develop.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality-and-tests:
+    name: Lint, Type Check, Migrate, Test
+    runs-on: ubuntu-latest
+
+    # Service containers: temporary Postgres and Redis available to CI steps.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: cinema_admin
+          POSTGRES_PASSWORD: cinema_password_2026
+          POSTGRES_DB: online_cinema_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U cinema_admin -d online_cinema_dev"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      POSTGRES_USER: cinema_admin
+      POSTGRES_PASSWORD: cinema_password_2026
+      POSTGRES_HOST: localhost
+      POSTGRES_DB_PORT: 5432
+      POSTGRES_DB: online_cinema_dev
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY_ACCESS: ci_test_access_secret_key_minimum_32_chars
+      SECRET_KEY_REFRESH: ci_test_refresh_secret_key_minimum_32_chars
+      OPENAPI_DOCS_ENABLED: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.3
+
+      - name: Install project dependencies
+        run: poetry install --no-interaction
+
+      - name: Run flake8 (style and syntax checks)
+        run: poetry run flake8 src tests
+
+      - name: Run mypy (static type checking)
+        run: poetry run mypy src
+
+      - name: Apply database migrations
+        run: poetry run alembic upgrade head
+
+      - name: Run tests with coverage
+        run: poetry run pytest --cov=src --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: warn
