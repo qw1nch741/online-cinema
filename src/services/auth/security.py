@@ -7,13 +7,13 @@ JWT and password security utilities.
 """
 
 import bcrypt
+import re
 import jwt
 from datetime import datetime, timedelta, timezone
 
-# In production, these must come from your configuration settings or environment variables!
-SECRET_KEY = "UCEbmHgVH5DWTohtWXiR5E2vnUL6sWakHSjcxlVQyJh"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+from src.config.settings import get_settings
+
+settings = get_settings()
 
 
 def hash_password(password: str) -> str:
@@ -43,7 +43,18 @@ def create_access_token(data: dict) -> str:
         Encoded JWT string with `exp` claim set to ACCESS_TOKEN_EXPIRE_MINUTES.
     """
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY_ACCESS, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+
+def validate_password_strength(password: str) -> str:
+    """Ensure password has at least 8 chars, 1 uppercase, and 1 digit."""
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters long")
+    if not re.search(r"[A-Z]", password):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not re.search(r"\d", password):
+        raise ValueError("Password must contain at least one digit")
+    return password

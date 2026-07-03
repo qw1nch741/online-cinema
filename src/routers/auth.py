@@ -8,7 +8,12 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from src.database.models import ActivationTokenModel, RefreshTokenModel, UserModel, PasswordResetTokenModel
+from src.database.models import (
+    ActivationTokenModel,
+    RefreshTokenModel,
+    UserModel,
+    PasswordResetTokenModel,
+)
 from src.database.session import get_postgresql_db
 from src.schemas.auth import (
     ActivationResendRequest,
@@ -17,10 +22,20 @@ from src.schemas.auth import (
     TokenResponse,
     UserLoginRequest,
     UserRegisterRequest,
-    UserResponse, PasswordChangeRequest, ForgotPasswordRequest, PasswordResetConfirm,
+    UserResponse,
+    PasswordChangeRequest,
+    ForgotPasswordRequest,
+    PasswordResetConfirm,
 )
 from src.services.auth.dependencies import get_current_user
-from src.services.auth.security import create_access_token, verify_password, hash_password
+from src.services.auth.security import (
+    create_access_token,
+    verify_password,
+    hash_password,
+)
+from src.config.settings import get_settings
+
+settings = get_settings()
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -74,7 +89,9 @@ _REFRESH_DESCRIPTION = (
     summary="Register a new user",
     description=_REGISTER_DESCRIPTION,
     responses={
-        201: {"description": "User created; activation token issued (account inactive until activated)"},
+        201: {
+            "description": "User created; activation token issued (account inactive until activated)"
+        },
         409: {"description": "Email is already registered"},
         422: {"description": "Validation error (invalid email or weak password)"},
     },
@@ -86,7 +103,10 @@ async def register(
     result = await db.execute(select(UserModel).where(UserModel.email == data.email))
     user_email = result.scalar_one_or_none()
     if user_email:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This email is already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This email is already registered",
+        )
 
     new_user = UserModel(email=data.email, password=data.password, group_id=1)
 
@@ -124,7 +144,9 @@ async def login(data: UserLoginRequest, db: AsyncSession = Depends(get_postgresq
     user = user_result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user._hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong credentials"
+        )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -138,7 +160,7 @@ async def login(data: UserLoginRequest, db: AsyncSession = Depends(get_postgresq
     db_refresh_token = RefreshTokenModel(
         user_id=user.id,
         token=refresh_token_str,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
     )
     db.add(db_refresh_token)
     await db.commit()
@@ -208,10 +230,15 @@ async def activate(
     db_token = result.scalar_one_or_none()
 
     if not db_token:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activation token not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Activation token not found"
+        )
 
-    if db_token.expires_at < now:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activation token has expired")
+    if db_token.expires_at.replace(tzinfo=timezone.utc) < now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Activation token has expired",
+        )
 
     user = db_token.user
     if user.is_active:
@@ -249,7 +276,9 @@ _RESEND_DESCRIPTION = (
         422: {"description": "Validation error (invalid email format)"},
     },
 )
-async def activate_resend(data: ActivationResendRequest, db: AsyncSession = Depends(get_postgresql_db)):
+async def activate_resend(
+    data: ActivationResendRequest, db: AsyncSession = Depends(get_postgresql_db)
+):
     user_result = await db.execute(
         select(UserModel).where(UserModel.email == data.email)
     )
@@ -260,7 +289,9 @@ async def activate_resend(data: ActivationResendRequest, db: AsyncSession = Depe
     if user.is_active:
         raise HTTPException(status_code=400, detail="Account is already active")
 
-    delete_old_tokens = delete(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id)
+    delete_old_tokens = delete(ActivationTokenModel).where(
+        ActivationTokenModel.user_id == user.id
+    )
     await db.execute(delete_old_tokens)
 
     # Змінюємо модель на ActivationTokenModel та виставляємо ліміт у 24 години
@@ -288,7 +319,9 @@ async def activate_resend(data: ActivationResendRequest, db: AsyncSession = Depe
         422: {"description": "Validation error"},
     },
 )
-async def refresh(data: TokenRefreshRequest, db: AsyncSession = Depends(get_postgresql_db)):
+async def refresh(
+    data: TokenRefreshRequest, db: AsyncSession = Depends(get_postgresql_db)
+):
     now = datetime.now(timezone.utc)
 
     result = await db.execute(
@@ -298,7 +331,7 @@ async def refresh(data: TokenRefreshRequest, db: AsyncSession = Depends(get_post
     )
     db_token = result.scalar_one_or_none()
 
-    if not db_token or db_token.expires_at < now:
+    if not db_token or db_token.expires_at.replace(tzinfo=timezone.utc) < now:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
@@ -345,16 +378,18 @@ async def refresh(data: TokenRefreshRequest, db: AsyncSession = Depends(get_post
 async def change_password(
     data: PasswordChangeRequest,
     current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_postgresql_db)
+    db: AsyncSession = Depends(get_postgresql_db),
 ):
     if not verify_password(data.old_password, current_user._hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid old password or unauthorized session")
+        raise HTTPException(
+            status_code=401, detail="Invalid old password or unauthorized session"
+        )
 
     current_user._hashed_password = hash_password(data.new_password)
 
     await db.commit()
 
-    return  {"description": "Password updated successfully"}
+    return {"description": "Password updated successfully"}
 
 
 @router.post(
@@ -364,8 +399,7 @@ async def change_password(
     responses={200: {"description": "Ambiguous success confirmation statement issued"}},
 )
 async def forgot_password(
-    data: ForgotPasswordRequest,
-    db: AsyncSession = Depends(get_postgresql_db)
+    data: ForgotPasswordRequest, db: AsyncSession = Depends(get_postgresql_db)
 ):
     user_result = await db.execute(
         select(UserModel).where(UserModel.email == data.email)
@@ -376,7 +410,9 @@ async def forgot_password(
         return {"description": "Ambiguous success confirmation statement issued"}
 
     await db.execute(
-        delete(PasswordResetTokenModel).where(PasswordResetTokenModel.user_id == user.id)
+        delete(PasswordResetTokenModel).where(
+            PasswordResetTokenModel.user_id == user.id
+        )
     )
 
     reset_token_str = secrets.token_hex(32)
@@ -404,8 +440,7 @@ async def forgot_password(
     },
 )
 async def reset_password(
-    data: PasswordResetConfirm,
-    db: AsyncSession = Depends(get_postgresql_db)
+    data: PasswordResetConfirm, db: AsyncSession = Depends(get_postgresql_db)
 ):
     now = datetime.now(timezone.utc)
 
@@ -437,6 +472,3 @@ async def reset_password(
     await db.commit()
 
     return {"message": "Credentials updated; user can now log in"}
-
-
-
