@@ -1,5 +1,6 @@
 import enum
 from datetime import datetime, date, timedelta, timezone
+from os import cpu_count
 from typing import List, Optional
 
 
@@ -218,6 +219,12 @@ class CartModel(Base):
     items: Mapped[list["CartItemModel"]] = relationship(
         back_populates="cart", cascade="all, delete-orphan"
     )
+
+    def count(self):
+        count = 0
+        for item in self.items:
+            count += 1
+        return count
 
 
 class CartItemModel(Base):
