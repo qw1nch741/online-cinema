@@ -16,6 +16,9 @@ class BaseAppSettings(BaseSettings):
     MINIO_HOST: str = "cinema_minio_dev"  # Match your docker service names!
     MINIO_PORT: int = 9000
 
+    # Swagger / OpenAPI: set to false in production to restrict public docs access
+    OPENAPI_DOCS_ENABLED: bool = True
+
     # 2. Tell Pydantic to read from a local .env file automatically
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -32,9 +35,12 @@ class Settings(BaseAppSettings):
     # Use safe string secrets generation to prevent byte string validation errors
     SECRET_KEY_ACCESS: str = secrets.token_hex(32)
     SECRET_KEY_REFRESH: str = secrets.token_hex(32)
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # 3. Dynamic SQLAlchemy Driver String Constructor
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def ASYNC_DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"

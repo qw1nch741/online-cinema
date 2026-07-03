@@ -1,8 +1,12 @@
 import enum
 from datetime import datetime, date, timedelta, timezone
+from os import cpu_count
 from typing import List, Optional
+
+
+from decimal import Decimal
+from sqlalchemy import Numeric
 from sqlalchemy.orm import validates
-from src.database.validators.accounts import validate_email
 from src.database.validators.accounts import validate_email, validate_password
 from src.services.auth.security import hash_password
 
@@ -31,6 +35,12 @@ class UserGroupEnum(str, enum.Enum):
 class GenderEnum(str, enum.Enum):
     MAN = "man"
     WOMAN = "woman"
+
+
+class OrderStatusEnum(str, enum.Enum):
+    PENDING = "pending"
+    PAID = "paid"
+    CANCELED = "canceled"
 
 
 class UserGroup(Base):
@@ -86,6 +96,10 @@ class UserModel(Base):
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
     )
 
+    cart: Mapped[Optional["CartModel"]] = relationship(
+        "CartModel", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return (
             f"<UserModel(id={self.id}, email={self.email}, is_active={self.is_active})>"
@@ -102,7 +116,7 @@ class UserModel(Base):
         )
 
     @validates("email")
-    def validate_email(self, value):
+    def validate_email(self, key, value):
         return validate_email(value)
 
     @property
@@ -191,3 +205,77 @@ class MovieModel(Base):
     description: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(nullable=False)
     release_year: Mapped[int] = mapped_column(nullable=False)
+
+
+class CartModel(Base):
+    __tablename__ = "carts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    user: Mapped["UserModel"] = relationship(back_populates="cart")
+    items: Mapped[list["CartItemModel"]] = relationship(
+        back_populates="cart", cascade="all, delete-orphan"
+    )
+
+    def count(self):
+        count = 0
+        for item in self.items:
+            count += 1
+        return count
+
+
+class CartItemModel(Base):
+    __tablename__ = "cart_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cart_id: Mapped[int] = mapped_column(
+        ForeignKey("carts.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    cart: Mapped["CartModel"] = relationship(back_populates="items")
+    movie: Mapped["MovieModel"] = relationship()
+
+    __table_args__ = (UniqueConstraint("cart_id", "movie_id", name="uq_cart_movie"),)
+
+
+class OrderModel(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        Enum(OrderStatusEnum), default=OrderStatusEnum.PENDING
+    )
+    total_amount: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    items: Mapped[list["OrderItemModel"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan"
+    )
+
+
+class OrderItemModel(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[int] = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
+    price_at_order: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
+
+    order: Mapped["OrderModel"] = relationship(back_populates="items")
